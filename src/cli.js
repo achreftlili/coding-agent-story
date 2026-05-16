@@ -4,10 +4,10 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
 
-const USAGE = `castory ${pkg.version}
+const USAGE = `coding-agent-story ${pkg.version}
 
 Usage:
-  castory <command> [options]
+  coding-agent-story <command> [options]
 
 Commands:
   list                          Discovered sessions across all projects
@@ -21,7 +21,7 @@ Common options:
   --help, -h                    Print help (works per subcommand too)
   --version, -v                 Print version
 
-Run 'castory <command> --help' for command-specific options.
+Run 'coding-agent-story <command> --help' for command-specific options.
 `;
 
 export async function main(argv) {
@@ -55,7 +55,7 @@ export async function main(argv) {
     case 'dashboard':
       return (await import('./cmd/dashboard.js')).run(rest);
     default:
-      process.stderr.write(`castory: unknown command '${first}'\n\n${USAGE}`);
+      process.stderr.write(`coding-agent-story: unknown command '${first}'\n\n${USAGE}`);
       return 2;
   }
 }

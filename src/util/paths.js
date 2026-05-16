@@ -6,7 +6,7 @@ export function claudeProjectsRoot() {
 }
 
 export function cacheRoot() {
-  return path.join(homedir(), '.cache', 'castory');
+  return path.join(homedir(), '.cache', 'coding-agent-story');
 }
 
 export function cacheDashboardDir() {

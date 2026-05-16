@@ -79,10 +79,10 @@ function sumTokens(events) {
   return t;
 }
 
-const HELP = `castory session — render one session as HTML
+const HELP = `coding-agent-story session — render one session as HTML
 
 Usage:
-  castory session <sessionId> [--out PATH]
+  coding-agent-story session <sessionId> [--out PATH]
 
 Options:
   --out PATH    Write HTML to PATH (default: stdout)
@@ -102,13 +102,13 @@ export async function run(argv) {
 
   const sessionId = positionals[0];
   if (!sessionId) {
-    process.stderr.write('castory session: missing <sessionId>\n\n' + HELP);
+    process.stderr.write('coding-agent-story session: missing <sessionId>\n\n' + HELP);
     return 2;
   }
 
   const located = await findSessionById(sessionId, claudeProjectsRoot());
   if (!located) {
-    process.stderr.write(`castory session: no session found for id '${sessionId}'\n`);
+    process.stderr.write(`coding-agent-story session: no session found for id '${sessionId}'\n`);
     return 1;
   }
 

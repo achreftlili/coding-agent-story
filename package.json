@@ -25,13 +25,13 @@
     "cli"
   ],
   "bin": {
-    "castory": "./bin/castory.js"
+    "coding-agent-story": "./bin/coding-agent-story.js"
   },
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "start": "node ./bin/castory.js",
+    "start": "node ./bin/coding-agent-story.js",
     "test": "node --test test/*.test.js",
     "test:e2e": "node --test test/e2e/*.test.js",
     "prepublishOnly": "npm test"

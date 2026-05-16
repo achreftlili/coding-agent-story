@@ -66,12 +66,12 @@ export async function findSessionById(sessionId, root = claudeProjectsRoot()) {
   return null;
 }
 
-// Walk `<repoRoot>/.castory/sessions/*.jsonl`. These are JSONL files committed
-// to the repo by `castory share` so reviewers can render the author's sessions
-// locally via `castory dashboard`. Yields nothing if the dir doesn't exist.
+// Walk `<repoRoot>/.coding-agent-story/sessions/*.jsonl`. These are JSONL files committed
+// to the repo by `coding-agent-story share` so reviewers can render the author's sessions
+// locally via `coding-agent-story dashboard`. Yields nothing if the dir doesn't exist.
 export async function* listSharedSessions(repoRoot) {
   if (!repoRoot) return;
-  const sharedDir = path.join(repoRoot, '.castory', 'sessions');
+  const sharedDir = path.join(repoRoot, '.coding-agent-story', 'sessions');
   let files;
   try {
     files = await readdir(sharedDir, { withFileTypes: true });

@@ -3,10 +3,10 @@ import { listAllSessions } from '../discover.js';
 import { claudeProjectsRoot, projectNameFromCwd } from '../util/paths.js';
 import path from 'node:path';
 
-const HELP = `castory list — show discovered sessions across all projects
+const HELP = `coding-agent-story list — show discovered sessions across all projects
 
 Usage:
-  castory list [--projects DIR1,DIR2] [--json]
+  coding-agent-story list [--projects DIR1,DIR2] [--json]
 
 Options:
   --projects DIRS   Comma-separated absolute paths to restrict scanning to

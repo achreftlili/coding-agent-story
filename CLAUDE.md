@@ -2,8 +2,8 @@
 
 Turn Claude Code transcripts into PR stories — locally and offline.
 
-<!-- castory:config
-display_name: castory
+<!-- coding-agent-story:config
+display_name: coding-agent-story
 description: Local-only CLI that renders Claude Code sessions, PRs, and a dashboard
 base_branch: master
 important_files:
@@ -17,7 +17,7 @@ tags:
   - internal
 -->
 
-## castory hints
+## coding-agent-story hints
 
 - State intent before edits using "I'll <X> because <Y>".
 - When proposing alternatives, write "Options: 1) … 2) …" so forks are detectable.

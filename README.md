@@ -2,9 +2,9 @@
 
 Turn Claude Code transcripts into readable PR stories — locally.
 
-![castory dashboard](docs/dashboard.png)
+![coding-agent-story dashboard](docs/dashboard.png)
 
-`castory` reads the JSONL transcripts that Claude Code already writes to
+`coding-agent-story` reads the JSONL transcripts that Claude Code already writes to
 `~/.claude/projects/` and renders three views over them:
 
 - **dashboard** — every session you've ever run, filterable & searchable
@@ -26,38 +26,36 @@ Or run with no install:
 npx coding-agent-story@latest dashboard
 ```
 
-After install, the CLI command is `castory` (short name kept for ergonomics).
-
 Requires Node ≥ 20.
 
 For development against the source tree, use `npm link`:
 
 ```sh
-git clone https://github.com/achreftlili/CA-story.git castory && cd castory
-npm link    # `castory` now resolves to your working copy
+git clone https://github.com/achreftlili/CA-story.git coding-agent-story && cd coding-agent-story
+npm link    # `coding-agent-story` now resolves to your working copy
 ```
 
 ## Quick start
 
 ```sh
-castory dashboard           # build + open in your browser
-castory list                # plain-text list of every session
-castory session <id>        # render a single session as HTML
-castory pr --branch foo     # consolidate sessions on a branch into a PR
-castory share               # commit this branch's sessions for reviewers
-castory dashboard --serve   # local server with 30s auto-refresh
+coding-agent-story dashboard           # build + open in your browser
+coding-agent-story list                # plain-text list of every session
+coding-agent-story session <id>        # render a single session as HTML
+coding-agent-story pr --branch foo     # consolidate sessions on a branch into a PR
+coding-agent-story share               # commit this branch's sessions for reviewers
+coding-agent-story dashboard --serve   # local server with 30s auto-refresh
 ```
 
 ## Share sessions with reviewers
 
-When you open a PR, reviewers usually only see the diff. With `castory share`
+When you open a PR, reviewers usually only see the diff. With `coding-agent-story share`
 you can commit the Claude sessions that produced the diff to the branch, so
 anyone reviewing can replay the work locally:
 
 ```sh
 # On the author's machine, with the feature branch checked out:
-castory share              # copies branch sessions → .castory/sessions/<id>.jsonl
-                           # writes .castory/manifest.json
+coding-agent-story share              # copies branch sessions → .coding-agent-story/sessions/<id>.jsonl
+                           # writes .coding-agent-story/manifest.json
                            # stages + commits the files
 git push
 ```
@@ -65,7 +63,7 @@ git push
 Then on the reviewer's machine, after pulling the branch:
 
 ```sh
-castory dashboard          # auto-discovers .castory/sessions in the repo
+coding-agent-story dashboard          # auto-discovers .coding-agent-story/sessions in the repo
                            # branch sessions show up with a "shared" badge
 ```
 
@@ -83,21 +81,21 @@ Useful flags:
 
 | Command                              | What it does                                         |
 |--------------------------------------|------------------------------------------------------|
-| `castory list`                       | Print discovered sessions across all projects        |
-| `castory list --json`                | Same, machine-readable                               |
-| `castory session <id>`               | Render one session as HTML to stdout                 |
-| `castory session <id> --out PATH`    | Write HTML to `PATH`                                 |
-| `castory pr --branch <name>`         | Consolidate sessions on a branch into PR markdown    |
-| `castory pr --branch foo --repo .`   | Look in a specific repo for the branch's commits     |
-| `castory share`                      | Commit this branch's sessions to `.castory/` for reviewers |
-| `castory share --no-commit`          | Stage the files but let the user commit              |
-| `castory share --dry-run`            | Print what would happen, write nothing               |
-| `castory dashboard`                  | Build the dashboard and open it in your browser      |
-| `castory dashboard --out PATH`       | Write the dashboard HTML to `PATH`, don't open       |
-| `castory dashboard --serve`          | Start a local server with auto-refresh               |
-| `castory dashboard --serve --port N` | Start the server on a specific port (auto-increments if busy) |
-| `castory dashboard --projects A,B`   | Restrict to specific project paths                   |
-| `castory --version` / `--help`       | Standard CLI flags (each subcommand has its own `--help`) |
+| `coding-agent-story list`                       | Print discovered sessions across all projects        |
+| `coding-agent-story list --json`                | Same, machine-readable                               |
+| `coding-agent-story session <id>`               | Render one session as HTML to stdout                 |
+| `coding-agent-story session <id> --out PATH`    | Write HTML to `PATH`                                 |
+| `coding-agent-story pr --branch <name>`         | Consolidate sessions on a branch into PR markdown    |
+| `coding-agent-story pr --branch foo --repo .`   | Look in a specific repo for the branch's commits     |
+| `coding-agent-story share`                      | Commit this branch's sessions to `.coding-agent-story/` for reviewers |
+| `coding-agent-story share --no-commit`          | Stage the files but let the user commit              |
+| `coding-agent-story share --dry-run`            | Print what would happen, write nothing               |
+| `coding-agent-story dashboard`                  | Build the dashboard and open it in your browser      |
+| `coding-agent-story dashboard --out PATH`       | Write the dashboard HTML to `PATH`, don't open       |
+| `coding-agent-story dashboard --serve`          | Start a local server with auto-refresh               |
+| `coding-agent-story dashboard --serve --port N` | Start the server on a specific port (auto-increments if busy) |
+| `coding-agent-story dashboard --projects A,B`   | Restrict to specific project paths                   |
+| `coding-agent-story --version` / `--help`       | Standard CLI flags (each subcommand has its own `--help`) |
 
 ## What it extracts
 
@@ -120,13 +118,13 @@ preserved verbatim** — those are the highest-signal moments in a session.
 - No network calls in the default codepath. Verify in DevTools: opening the
   dashboard makes **zero** outbound requests.
 - No LLM calls. Summaries are extracted strings from your transcript.
-- Cache lives at `~/.cache/castory/` — delete it any time.
+- Cache lives at `~/.cache/coding-agent-story/` — delete it any time.
 
 ## Uninstall
 
 ```sh
 npm uninstall -g coding-agent-story
-rm -rf ~/.cache/castory
+rm -rf ~/.cache/coding-agent-story
 ```
 
 ## Development
