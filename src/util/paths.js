@@ -6,7 +6,7 @@ export function claudeProjectsRoot() {
 }
 
 export function cacheRoot() {
-  return path.join(homedir(), '.cache', 'coding-agent-story');
+  return process.env.CASTORY_CACHE_ROOT || path.join(homedir(), '.cache', 'coding-agent-story');
 }
 
 export function cacheDashboardDir() {

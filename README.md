@@ -2,6 +2,8 @@
 
 Turn Claude Code transcripts into readable PR stories — locally.
 
+**[▶ Live demo](https://achreftlili.github.io/coding-agent-story/)** — interactive dashboard with synthetic sessions (search, filter, expand, keyboard-nav all work on the static page).
+
 ![coding-agent-story dashboard](docs/dashboard.png)
 
 `coding-agent-story` reads the JSONL transcripts that Claude Code already writes to
@@ -132,7 +134,13 @@ rm -rf ~/.cache/coding-agent-story
 ```sh
 npm test            # unit + integration tests
 npm run test:e2e    # playwright headless smoke (requires `npx playwright install chromium` once)
+npm run build:demo  # regenerate docs/index.html (the GitHub Pages demo) from synthetic JSONLs
 ```
+
+The demo dashboard is a single self-contained HTML file — all CSS, JS, and
+session data are inlined, so it runs offline and on any static host. Sources
+for the synthetic sessions live in `scripts/build-demo-dashboard.mjs`; edit
+them there and rerun `npm run build:demo` to refresh `docs/index.html`.
 
 No runtime npm dependencies — everything is Node stdlib. Playwright is the
 only dev dependency.

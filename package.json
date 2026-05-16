@@ -34,6 +34,7 @@
     "start": "node ./bin/coding-agent-story.js",
     "test": "node --test test/*.test.js",
     "test:e2e": "node --test test/e2e/*.test.js",
+    "build:demo": "node scripts/build-demo-dashboard.mjs",
     "prepublishOnly": "npm test"
   },
   "files": [

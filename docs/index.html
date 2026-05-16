@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>coding-agent-story dashboard</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c212c;
+    --border: #262b38;
+    --fg: #e6e9ef;
+    --muted: #8b93a7;
+    --accent: #6aa9ff;
+    --accent-soft: #1b2942;
+    --green: #69d58e;
+    --yellow: #ffd166;
+    --red: #ff6b6b;
+    --shadow: 0 1px 0 rgba(255,255,255,0.02), 0 4px 20px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px; line-height: 1.55;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header.coding-agent-story-header {
+    padding: 18px 24px; border-bottom: 1px solid var(--border);
+    display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: baseline;
+    background: var(--panel); position: sticky; top: 0; z-index: 5;
+  }
+  header.coding-agent-story-header h1 { margin: 0; font-size: 18px; letter-spacing: 0.2px; }
+  header.coding-agent-story-header .stats { color: var(--muted); font-size: 12px; }
+  main { max-width: 1180px; margin: 0 auto; padding: 18px 24px 80px; }
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .toolbar input[type="search"], .toolbar select, .toolbar button {
+    background: var(--panel-2); color: var(--fg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 10px; font: inherit;
+  }
+  .toolbar input[type="search"] { min-width: 240px; }
+  .toolbar label { color: var(--muted); font-size: 12px; }
+  .toolbar .spacer { flex: 1; }
+  .toolbar .pill {
+    background: var(--accent-soft); color: var(--accent);
+    border: 1px solid transparent; border-radius: 999px; padding: 2px 8px; font-size: 11px;
+  }
+  .session-list { list-style: none; padding: 0; margin: 0; }
+  .session-row {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 8px; overflow: hidden; box-shadow: var(--shadow);
+  }
+  .session-row[open] { border-color: var(--accent); }
+  .session-row summary {
+    list-style: none; cursor: pointer; padding: 12px 16px;
+    display: grid;
+    grid-template-columns: 96px 180px 130px 56px 56px 64px 1fr 130px;
+    gap: 12px; align-items: center;
+  }
+  .session-row summary:hover { background: rgba(106,169,255,0.04); }
+  .badges-cell { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+  .badge-fail { background: rgba(255,107,107,0.10); color: var(--red); border: 1px solid rgba(255,107,107,0.30); }
+  .badge-side { background: rgba(170,132,255,0.10); color: #c8a8ff; border: 1px solid rgba(170,132,255,0.30); }
+  .badge-plan { background: rgba(255,209,102,0.10); color: var(--yellow); border: 1px solid rgba(255,209,102,0.30); }
+  .badge-shared { background: rgba(122,217,255,0.10); color: #7ad9ff; border: 1px solid rgba(122,217,255,0.30); }
+  .model-badge {
+    display: inline-block; padding: 0 6px; border-radius: 4px;
+    background: rgba(106,169,255,0.10); color: var(--accent);
+    border: 1px solid rgba(106,169,255,0.25);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+  }
+  .session-row .tokens {
+    font-variant-numeric: tabular-nums; font-size: 12px; color: var(--muted);
+    text-align: right;
+  }
+  .tag-row { display: inline-flex; gap: 4px; margin-top: 2px; flex-wrap: wrap; }
+  .tag-chip {
+    display: inline-block; padding: 0 6px; border-radius: 999px;
+    background: rgba(122,217,255,0.10); color: var(--user-cyan, #7ad9ff);
+    border: 1px solid rgba(122,217,255,0.25);
+    font-size: 10px; letter-spacing: 0.3px;
+  }
+  .tools-row, .chip-row { display: inline-flex; gap: 4px; margin-top: 2px; flex-wrap: wrap; }
+  .tool-chip, .skill-chip, .agent-chip {
+    display: inline-block; padding: 0 6px; border-radius: 4px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+  }
+  .tool-chip b { color: var(--green); font-weight: 600; margin-left: 2px; }
+  .skill-chip { color: #ffe5a0; border-color: rgba(255,209,102,0.30); background: rgba(255,209,102,0.06); }
+  .skill-chip::before { content: "⚡ "; color: var(--yellow); }
+  .skill-chip b { color: var(--yellow); font-weight: 600; margin-left: 2px; }
+  .agent-chip { color: #c8a8ff; border-color: rgba(170, 132, 255, 0.30); background: rgba(170, 132, 255, 0.06); }
+  .agent-chip::before { content: "🤖 "; }
+  .agent-chip b { color: #c8a8ff; font-weight: 600; margin-left: 2px; }
+  .mcp-chip {
+    color: #ffb4ec; border-color: rgba(255,180,236,0.30); background: rgba(255,180,236,0.06);
+    display: inline-block; padding: 0 6px; border-radius: 4px; border: 1px solid;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px;
+  }
+  .mcp-chip::before { content: "🔌 "; }
+  .mcp-chip b { color: #ffb4ec; font-weight: 600; margin-left: 2px; }
+  .bash-chip {
+    color: var(--green); border-color: rgba(105,213,142,0.30); background: rgba(105,213,142,0.04);
+    display: inline-block; padding: 0 6px; border-radius: 4px; border: 1px solid;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px;
+  }
+  .bash-chip::before { content: "$ "; opacity: 0.6; }
+  .bash-chip b { color: var(--green); font-weight: 600; margin-left: 2px; }
+  .slash-chip {
+    color: var(--accent); border-color: rgba(106,169,255,0.30); background: rgba(106,169,255,0.06);
+    display: inline-block; padding: 0 6px; border-radius: 4px; border: 1px solid;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px;
+  }
+  .slash-chip::before { content: "/"; opacity: 0.7; }
+  .slash-chip b { color: var(--accent); font-weight: 600; margin-left: 2px; }
+  .tool-chip.more, .skill-chip.more, .agent-chip.more,
+  .mcp-chip.more, .bash-chip.more, .slash-chip.more { font-style: italic; color: var(--muted); }
+  .session-row .summary { display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+  .session-row .summary .row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; }
+  .session-row .row-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .session-row .summary .row-intervention {
+    font-size: 11px; color: #ffd166; opacity: 0.85;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    border-left: 2px solid var(--yellow); padding-left: 6px;
+  }
+  .session-row .spark { width: 80px; height: 18px; display: block; }
+  .session-row .spark rect { fill: var(--accent); opacity: 0.7; }
+  .session-row summary::-webkit-details-marker { display: none; }
+  .session-row .when { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+  .session-row .branch { color: var(--accent); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .session-row .duration { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--muted); }
+  .session-row .files { font-size: 12px; color: var(--muted); }
+  .session-row .summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .session-row .project { font-weight: 600; }
+  .badge { display: inline-block; padding: 1px 6px; border-radius: 999px; font-size: 11px; }
+  .badge-int { background: rgba(255,107,107,0.12); color: var(--red); border: 1px solid rgba(255,107,107,0.3); }
+  .badge-ok { background: rgba(105,213,142,0.10); color: var(--green); border: 1px solid rgba(105,213,142,0.25); }
+  .session-detail {
+    padding: 14px 18px 18px; border-top: 1px solid var(--border); background: var(--panel-2);
+  }
+  .tldr-panel {
+    background: var(--panel); border: 1px solid var(--accent);
+    border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(106,169,255,0.10);
+  }
+  .tldr-header {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .tldr-header h4 { margin: 0; font-size: 13px; color: var(--accent); letter-spacing: 0.4px; }
+  .tldr-stats { color: var(--muted); font-size: 11px; }
+  .tldr-label {
+    display: inline-block; font-size: 10px; padding: 1px 7px;
+    margin-right: 8px; border-radius: 999px; vertical-align: 1px;
+    background: var(--panel-2); color: var(--muted); border: 1px solid var(--border);
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .tldr-ask, .tldr-summary { font-size: 13px; margin: 4px 0; line-height: 1.55; }
+  .tldr-ask .tldr-label { color: var(--user-cyan, #7ad9ff); border-color: rgba(122,217,255,0.30); }
+  .tldr-summary .tldr-label { color: var(--accent); border-color: rgba(106,169,255,0.30); }
+  .tldr-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .tldr-hint { font-size: 10px; margin-top: 6px; color: var(--muted); opacity: 0.7; }
+  .tldr-chips [data-jump-tool], .tldr-chips [data-jump-mcp],
+  .tldr-chips [data-jump-bashcat], .tldr-chips [data-jump-skill],
+  .tldr-chips [data-jump-agent] { cursor: pointer; user-select: none; }
+  .tldr-chips [data-jump-tool]:hover, .tldr-chips [data-jump-mcp]:hover,
+  .tldr-chips [data-jump-bashcat]:hover, .tldr-chips [data-jump-skill]:hover,
+  .tldr-chips [data-jump-agent]:hover { filter: brightness(1.3); }
+  @keyframes jumpFlash {
+    0% { background-color: rgba(106,169,255,0.35); }
+    100% { background-color: transparent; }
+  }
+  .jump-flash {
+    animation: jumpFlash 1.5s ease-out;
+    border-radius: 6px;
+  }
+  html { scroll-behavior: smooth; }
+  .chapter {
+    margin-bottom: 18px;
+  }
+  .chapter h3 {
+    margin: 14px 0 8px; font-size: 14px; color: var(--accent);
+  }
+  .chapter .meta { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+  .chapter ul { list-style: none; padding: 0; margin: 0; }
+  .chapter li {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; margin: 6px 0; font-size: 13px; word-wrap: break-word;
+  }
+  .chapter li.action { border-left: 3px solid var(--green); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .chapter li.outcome { border-left: 3px solid var(--muted); color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .chapter li.outcome.error { border-left-color: var(--red); color: var(--red); }
+  --user-cyan: #7ad9ff;
+  --user-soft: rgba(122, 217, 255, 0.10);
+  --user-border: rgba(122, 217, 255, 0.30);
+  .decision-group {
+    margin: 12px 0;
+    padding: 4px 0 4px 12px;
+    border-left: 3px solid var(--accent);
+  }
+  .decision-group.by-claude { border-left-color: var(--accent); }
+  .decision-group.by-user   { border-left-color: var(--user-cyan); }
+  .decision-group.silent    { border-left-color: var(--muted); border-left-style: dashed; }
+  .decision-text {
+    font-size: 13px; color: var(--fg); margin-bottom: 6px;
+    border-radius: 6px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .decision-text.by-claude {
+    background: rgba(106, 169, 255, 0.06);
+    border-color: rgba(106, 169, 255, 0.20);
+  }
+  .decision-text.by-user {
+    background: var(--user-soft);
+    border-color: var(--user-border);
+    color: #e6f5ff;
+  }
+  .decision-text.silent {
+    background: transparent; border-style: dashed; color: var(--muted); font-style: italic;
+  }
+  .decision-by {
+    display: inline-block;
+    font-size: 10px; letter-spacing: 0.6px; text-transform: uppercase;
+    margin-right: 8px; padding: 1px 7px; border-radius: 999px;
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
+    font-style: normal; vertical-align: 2px;
+  }
+  .decision-text.by-claude .decision-by { color: var(--accent); border-color: rgba(106,169,255,0.4); }
+  .decision-text.by-user   .decision-by { color: var(--user-cyan); border-color: var(--user-border); }
+  .decision-text.silent    .decision-by { color: var(--yellow); border-color: rgba(255,209,102,0.35); }
+  .actions-under { margin-left: 4px; }
+  .tool-name {
+    display: inline-block; font-size: 11px; padding: 1px 7px; margin-right: 6px;
+    border-radius: 4px; background: rgba(105,213,142,0.10); color: var(--green);
+    border: 1px solid rgba(105,213,142,0.25);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.3px;
+  }
+  .tool-cmd {
+    color: var(--fg); background: var(--panel-2);
+    padding: 1px 5px; border-radius: 3px; font-size: 11px;
+    word-break: break-all;
+  }
+  .turn-tok {
+    display: inline-block; padding: 1px 7px; border-radius: 999px;
+    background: rgba(122, 217, 255, 0.10); color: var(--user-cyan, #7ad9ff);
+    border: 1px solid rgba(122, 217, 255, 0.30);
+    font-size: 10px; letter-spacing: 0.3px; margin-left: 6px;
+    font-variant-numeric: tabular-nums; vertical-align: 1px;
+    cursor: help;
+  }
+  .file-link {
+    color: var(--accent); text-decoration: none;
+    border-bottom: 1px dashed rgba(106,169,255,0.4);
+    word-break: break-all;
+  }
+  .file-link:hover { border-bottom-style: solid; }
+  .file-link.gh::after {
+    content: " ↗";
+    font-size: 10px; color: var(--muted);
+  }
+  .file-link-alt {
+    color: var(--muted); text-decoration: none;
+    margin-left: 4px; font-size: 11px;
+  }
+  .file-link-alt:hover { color: var(--accent); }
+  .action-outcome {
+    margin-top: 6px; padding: 4px 8px;
+    background: rgba(105,213,142,0.06); border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px; color: var(--muted);
+    white-space: pre-wrap; word-break: break-word;
+    border-left: 2px solid var(--green);
+  }
+  .action-outcome.error {
+    background: rgba(255,107,107,0.06); color: var(--red); border-left-color: var(--red);
+  }
+  .intervention {
+    background: rgba(255, 209, 102, 0.06);
+    border: 1px solid rgba(255, 209, 102, 0.3);
+    color: #ffe5a0;
+    border-left: 3px solid var(--yellow);
+    padding: 10px 12px; margin: 10px 0; border-radius: 6px;
+  }
+  .intervention.simple::before { content: "📌 your call — "; color: var(--yellow); font-weight: 600; }
+  .intervention.qa { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; }
+  .intervention.qa .qa-label { color: var(--yellow); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding-top: 2px; }
+  .intervention.qa .qa-claude { color: var(--muted); }
+  .intervention.qa .qa-user { color: #ffe5a0; }
+  .branch-pill {
+    display: inline-block; padding: 2px 10px; border-radius: 999px;
+    background: rgba(106,169,255,0.10); color: var(--accent);
+    border: 1px solid rgba(106,169,255,0.30);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px; letter-spacing: 0.2px; white-space: nowrap;
+  }
+  .session-branch {
+    margin: 0 0 10px; display: flex; gap: 8px; align-items: center;
+  }
+  .session-branch .meta { font-size: 11px; }
+  .file-summary {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px;
+    padding: 10px 12px; margin-bottom: 14px;
+  }
+  .file-summary h4 { margin: 0 0 6px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+  .file-summary table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .file-summary th, .file-summary td { padding: 3px 6px; text-align: left; }
+  .file-summary th { color: var(--muted); font-weight: normal; }
+  .file-summary td.count { text-align: right; font-variant-numeric: tabular-nums; color: var(--green); width: 60px; }
+  .file-summary td.path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--fg); }
+  .file-summary tr.hot td { background: rgba(255, 209, 102, 0.08); }
+  .hot-tag { color: var(--yellow); margin-right: 4px; }
+  .diff {
+    margin: 6px 0 2px; border-radius: 4px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .diff summary {
+    background: var(--panel-2); padding: 4px 8px; cursor: pointer;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px;
+    color: var(--muted);
+  }
+  .diff summary::-webkit-details-marker { display: none; }
+  .diff[open] summary::before { content: "▾ "; }
+  .diff:not([open]) summary::before { content: "▸ "; }
+  .diff pre {
+    margin: 0; padding: 6px 8px;
+    background: #0c0f14;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px; line-height: 1.45;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .diff .ln { display: block; padding: 0 4px; }
+  .diff .ln.add { background: rgba(105,213,142,0.10); color: var(--green); }
+  .diff .ln.del { background: rgba(255,107,107,0.10); color: var(--red); }
+  .diff .ln.ctx { color: var(--muted); }
+  .diff .ln-gutter { display: inline-block; width: 16px; color: var(--muted); user-select: none; }
+  .session-toc {
+    display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 16px; font-size: 12px;
+  }
+  .session-toc a {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px;
+    padding: 2px 10px; color: var(--accent);
+  }
+  .empty {
+    text-align: center; padding: 60px 20px; color: var(--muted);
+  }
+  .help-foot {
+    color: var(--muted); font-size: 12px; padding: 24px 0;
+    border-top: 1px solid var(--border); margin-top: 32px;
+  }
+  kbd {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px;
+    padding: 1px 5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px;
+  }
+  details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .selected > summary { background: var(--accent-soft); }
+</style>
+</head>
+<body>
+<header class="coding-agent-story-header">
+  <h1>coding-agent-story <span class="pill">local</span></h1>
+  <span id="coding-agent-story-stats" class="stats"></span>
+</header>
+<main>
+  <div class="toolbar">
+    <input type="search" id="coding-agent-story-search" placeholder="Search summary, files, branch… (/)" autocomplete="off">
+    <label for="coding-agent-story-project">project</label>
+    <select id="coding-agent-story-project">
+      <option value="all">all projects</option>
+    </select>
+    <label for="coding-agent-story-range">when</label>
+    <select id="coding-agent-story-range">
+      <option value="all">all time</option>
+      <option value="24h">last 24h</option>
+      <option value="7d">last 7d</option>
+      <option value="30d">last 30d</option>
+    </select>
+    <label for="coding-agent-story-sort">sort</label>
+    <select id="coding-agent-story-sort">
+      <option value="recent">most recent</option>
+      <option value="longest">longest</option>
+      <option value="interventions">most interventions</option>
+      <option value="files">most files</option>
+      <option value="tokens">most tokens</option>
+      <option value="failures">most failures</option>
+    </select>
+    <label><input type="checkbox" id="coding-agent-story-hasint"> has interventions</label>
+    <div class="spacer"></div>
+    <span class="meta"><kbd>/</kbd> search · <kbd>j</kbd>/<kbd>k</kbd> move · <kbd>↵</kbd> expand</span>
+  </div>
+  <div id="coding-agent-story-list" class="session-list"></div>
+  <footer class="help-foot">Generated by coding-agent-story · all data stays on your machine. No network calls, no LLM calls.</footer>
+</main>
+<script type="application/json" id="coding-agent-story-data">{"generated_at":"2026-05-16T18:21:11.795Z","version":"1.0","projects":[{"name":"coding-agent-story","path":"/Users/demo/coding-agent-story","session_count":2},{"name":"shop-api","path":"/Users/demo/shop-api","session_count":2}],"sessions":[{"id":"demo-add-filter-chip","project_path":"/Users/demo/coding-agent-story","project_name":"coding-agent-story","project_description":null,"project_tags":[],"important_files":[],"started_at":"2026-05-16T16:00:00.000Z","ended_at":"2026-05-16T16:02:48.000Z","duration_seconds":168,"message_count":12,"files_touched":["/Users/demo/coding-agent-story/src/render/dashboard-html.js","/Users/demo/coding-agent-story/src/render/templates/dashboard.client.js"],"first_user_message":"Add a 'has failures' filter chip to the dashboard toolbar — same UX as the existing 'has interventions' one.","git_branch":"feat/has-failures-filter","intervention_count":0,"first_intervention":"","activity_buckets":[1,1,1,0,1,0,1,0,1,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1],"tool_calls":{"Read":1,"Edit":2,"Bash":1},"mcp_tools":{},"bash_categories":{"test":1},"slash_commands":{},"stop_reasons":{"end_turn":3},"max_tokens_count":0,"refusal_count":0,"skills_used":{},"subagents_used":{},"tokens":{"input":12600,"output":236,"cache_read":33800,"cache_creation":0,"assistant_messages":3,"total":46636,"billable":12836},"models":["claude-opus-4-7"],"shared":false,"sidechain_messages":0,"tool_failures":0,"plan_turn_pct":0,"plan_turns":0,"turn_duration_ms_avg":162000,"turn_duration_ms_max":162000,"turn_count":1,"summary":"Add a 'has failures' filter chip to the dashboard toolbar — same UX as the exist"},{"id":"demo-share-atomic","project_path":"/Users/demo/coding-agent-story","project_name":"coding-agent-story","project_description":null,"project_tags":[],"important_files":[],"started_at":"2026-05-15T18:00:00.000Z","ended_at":"2026-05-15T18:06:18.000Z","duration_seconds":378,"message_count":13,"files_touched":["/Users/demo/coding-agent-story/src/cmd/share.js"],"first_user_message":"The share command sometimes leaves the repo dirty if `git commit` fails mid-write. Make the whole operation atomic.","git_branch":"fix/share-atomic","intervention_count":1,"first_intervention":"go with option 1 — temp dir + atomic rename. don't use git stash, we burned on that last quarter when it ate uncommitted edits.","activity_buckets":[1,1,0,0,0,0,1,1,2,0,0,0,0,0,0,2,1,0,0,2,0,0,1,1],"tool_calls":{"Skill":1,"Edit":1,"Bash":2},"mcp_tools":{},"bash_categories":{"test":1,"node":1},"slash_commands":{},"stop_reasons":{"end_turn":3},"max_tokens_count":0,"refusal_count":0,"skills_used":{"simplify":1},"subagents_used":{},"tokens":{"input":15950,"output":258,"cache_read":36300,"cache_creation":0,"assistant_messages":3,"total":52508,"billable":16208},"models":["claude-opus-4-7"],"shared":false,"sidechain_messages":0,"tool_failures":0,"plan_turn_pct":0,"plan_turns":0,"turn_duration_ms_avg":418000,"turn_duration_ms_max":418000,"turn_count":1,"summary":"The share command sometimes leaves the repo dirty if `git commit` fails mid-writ"},{"id":"demo-checkout-flake","project_path":"/Users/demo/shop-api","project_name":"shop-api","project_description":null,"project_tags":[],"important_files":[],"started_at":"2026-05-13T18:00:00.000Z","ended_at":"2026-05-13T18:20:36.000Z","duration_seconds":1236,"message_count":32,"files_touched":["/Users/demo/shop-api/src/checkout/cart.js","/Users/demo/shop-api/src/checkout/payment.js","/Users/demo/shop-api/src/checkout/order.js","/Users/demo/shop-api/src/checkout/refund.js","/Users/demo/shop-api/test/checkout/race.test.js"],"first_user_message":"wait — don't just patch that one Promise. find every spot in src/checkout/ that fires async work without awaiting. If one slipped through, others probably did too.","git_branch":"fix/checkout-flake","intervention_count":2,"first_intervention":"wait — don't just patch that one Promise. find every spot in src/checkout/ that fires async work without awaiting. If one slipped through, o","activity_buckets":[3,0,0,1,3,2,2,0,0,4,6,3,0,0,0,0,0,0,1,1,4,0,0,2],"tool_calls":{"Bash":3,"Read":1,"Agent":1,"Edit":5,"Write":1},"mcp_tools":{},"bash_categories":{"test":3},"slash_commands":{"diagnose":1},"stop_reasons":{"end_turn":7},"max_tokens_count":0,"refusal_count":0,"skills_used":{},"subagents_used":{"Explore":1},"tokens":{"input":53700,"output":627,"cache_read":130700,"cache_creation":0,"assistant_messages":7,"total":185027,"billable":54327},"models":["claude-opus-4-7"],"shared":false,"sidechain_messages":0,"tool_failures":1,"plan_turn_pct":0,"plan_turns":0,"turn_duration_ms_avg":1230000,"turn_duration_ms_max":1230000,"turn_count":1,"summary":"I'll reproduce first by running the test 20x with --repeat"},{"id":"demo-stripe-migration","project_path":"/Users/demo/shop-api","project_name":"shop-api","project_description":null,"project_tags":[],"important_files":[],"started_at":"2026-05-10T18:00:00.000Z","ended_at":"2026-05-10T18:02:48.000Z","duration_seconds":168,"message_count":9,"files_touched":["/Users/demo/shop-api/migrations/0042_add_stripe_payment_method.sql"],"first_user_message":"Add a migration that adds `stripe_payment_method_id` (nullable string, 64 chars) to the `orders` table. Backfill to NULL.","git_branch":"feat/stripe-pmi-column","intervention_count":0,"first_intervention":"","activity_buckets":[1,0,1,0,1,1,0,1,0,0,0,0,0,0,1,0,0,1,0,0,0,0,1,1],"tool_calls":{"Write":1,"Bash":1,"Skill":1},"mcp_tools":{},"bash_categories":{"other":1},"slash_commands":{},"stop_reasons":{"end_turn":2},"max_tokens_count":0,"refusal_count":0,"skills_used":{"security-review":1},"subagents_used":{},"tokens":{"input":6380,"output":134,"cache_read":16600,"cache_creation":0,"assistant_messages":2,"total":23114,"billable":6514},"models":["claude-sonnet-4-6"],"shared":false,"sidechain_messages":0,"tool_failures":0,"plan_turn_pct":0,"plan_turns":0,"turn_duration_ms_avg":162000,"turn_duration_ms_max":162000,"turn_count":1,"summary":"Add a migration that adds `stripe_payment_method_id` (nullable string, 64 chars)"}]}</script>
+<script type="application/json" id="coding-agent-story-fragments">{"demo-add-filter-chip":"<div class=\"session-branch\"><span class=\"branch-pill\">⎇ feat/has-failures-filter</span> <span class=\"meta\">git branch active during this session</span></div>\n\n<div class=\"file-summary\">\n  <h4>Files touched (2)</h4>\n  <table><thead><tr><th>path</th><th style=\"text-align:right\">edits</th></tr></thead><tbody><tr class=\"\"><td class=\"path\"><a class=\"file-link\" href=\"vscode://file/Users/demo/coding-agent-story/src/render/dashboard-html.js\" title=\"open in VS Code\">/Users/demo/coding-agent-story/src/render/dashboard-html.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/coding-agent-story/src/render/dashboard-html.js\" title=\"open with default app\">↗</a></td><td class=\"count\">1</td></tr><tr class=\"\"><td class=\"path\"><a class=\"file-link\" href=\"vscode://file/Users/demo/coding-agent-story/src/render/templates/dashboard.client.js\" title=\"open in VS Code\">/Users/demo/coding-agent-story/src/render/templates/dashboard.client.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/coding-agent-story/src/render/templates/dashboard.client.js\" title=\"open with default app\">↗</a></td><td class=\"count\">1</td></tr></tbody></table>\n</div>\n\n\n<section class=\"chapter\" id=\"ch1\">\n  <h3>Add a &#39;has failures&#39; filter chip to the dashboard toolbar —…</h3>\n  <div class=\"meta\">2026-05-16T16:00:00.000Z · 2 file(s) · 3 action(s)</div>\n  \n  <section class=\"decision-group by-user\">\n    <div class=\"decision-text by-user\">\n        <span class=\"decision-by\">👤 you asked</span>\n        Add a &#39;has failures&#39; filter chip to the dashboard toolbar — same UX as the existing &#39;has interventions&#39; one.\n      </div>\n    \n    \n  </section><section class=\"decision-group by-claude\">\n    <div class=\"decision-text by-claude\">\n        <span class=\"decision-by\">🤖 claude</span>\n        I&#39;ll add a checkbox in the toolbar and wire it into the client-side filter pipeline because the dashboard renders entirely on the client.\n      </div>\n    \n    <ul class=\"actions-under\"><li class=\"outcome\">File contents…</li></ul>\n  </section><section class=\"decision-group by-claude\">\n    <div class=\"decision-text by-claude\">\n        <span class=\"decision-by\">🤖 claude</span>\n        I see the existing &#39;has interventions&#39; checkbox at the toolbar end. I&#39;ll mirror that exact pattern so the new chip slots in cleanly.\n      </div>\n    <ul class=\"actions-under\"><li class=\"action\" data-tool=\"Edit\" data-file=\"/Users/demo/coding-agent-story/src/render/dashboard-html.js\"><span class=\"tool-name\">Edit</span> <a class=\"file-link\" href=\"vscode://file/Users/demo/coding-agent-story/src/render/dashboard-html.js\" title=\"open in VS Code\">/Users/demo/coding-agent-story/src/render/dashboard-html.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/coding-agent-story/src/render/dashboard-html.js\" title=\"open with default app\">↗</a><details class=\"diff\"><summary>diff</summary><pre><span class=\"ln ctx\"><span class=\"ln-gutter\"> </span>&lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;coding-agent-story-hasint&quot;&gt; has interventions&lt;/label&gt;</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>    &lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;coding-agent-story-hasfail&quot;&gt; has failures&lt;/label&gt;</span></pre></details><div class=\"action-outcome\">Edited successfully</div></li><li class=\"action\" data-tool=\"Edit\" data-file=\"/Users/demo/coding-agent-story/src/render/templates/dashboard.client.js\"><span class=\"tool-name\">Edit</span> <a class=\"file-link\" href=\"vscode://file/Users/demo/coding-agent-story/src/render/templates/dashboard.client.js\" title=\"open in VS Code\">/Users/demo/coding-agent-story/src/render/templates/dashboard.client.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/coding-agent-story/src/render/templates/dashboard.client.js\" title=\"open with default app\">↗</a><details class=\"diff\"><summary>diff</summary><pre><span class=\"ln ctx\"><span class=\"ln-gutter\"> </span>if (STATE.hasint &amp;&amp; !s.intervention_count) return false;</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>      if (STATE.hasfail &amp;&amp; !s.tool_failures) return false;</span></pre></details><div class=\"action-outcome\">Edited successfully</div></li><li class=\"action\" data-tool=\"Bash\" data-bashcat=\"test\"><span class=\"tool-name\">Bash</span> <code class=\"tool-cmd\">npm test --silent</code><div class=\"action-outcome\">142 passing\n0 failing</div></li></ul>\n    \n  </section>\n</section>","demo-share-atomic":"<div class=\"session-branch\"><span class=\"branch-pill\">⎇ fix/share-atomic</span> <span class=\"meta\">git branch active during this session</span></div>\n\n<div class=\"file-summary\">\n  <h4>Files touched (1)</h4>\n  <table><thead><tr><th>path</th><th style=\"text-align:right\">edits</th></tr></thead><tbody><tr class=\"\"><td class=\"path\"><a class=\"file-link\" href=\"vscode://file/Users/demo/coding-agent-story/src/cmd/share.js\" title=\"open in VS Code\">/Users/demo/coding-agent-story/src/cmd/share.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/coding-agent-story/src/cmd/share.js\" title=\"open with default app\">↗</a></td><td class=\"count\">1</td></tr></tbody></table>\n</div>\n\n\n<section class=\"chapter\" id=\"ch1\">\n  <h3>The share command sometimes leaves the repo dirty if `git c…</h3>\n  <div class=\"meta\">2026-05-15T18:00:00.000Z · 1 file(s) · 3 action(s)</div>\n  <div class=\"intervention qa\">\n      <div class=\"qa-label\">Claude asked</div>\n      <div class=\"qa-claude\">Two options here: 1) write to a temp dir and atomically rename into `.coding-agent-story/sessions/`, or 2) wrap the whole operation in a single `git stash` + apply at the end. Which do you want?</div>\n      <div class=\"qa-label\">You said</div>\n      <div class=\"qa-user\">go with option 1 — temp dir + atomic rename. don&#39;t use git stash, we burned on that last quarter when it ate uncommitted edits.</div>\n    </div>\n  <section class=\"decision-group by-user\">\n    <div class=\"decision-text by-user\">\n        <span class=\"decision-by\">👤 you asked</span>\n        The share command sometimes leaves the repo dirty if `git commit` fails mid-write. Make the whole operation atomic.\n      </div>\n    \n    \n  </section><section class=\"decision-group by-claude\">\n    <div class=\"decision-text by-claude\">\n        <span class=\"decision-by\">🤖 claude</span>\n        I&#39;ll write to `.coding-agent-story/.tmp-&lt;pid&gt;/`, fsync, then rename to the final path so a crash mid-write can&#39;t leave a partial sessions/ dir.\n      </div>\n    <ul class=\"actions-under\"><li class=\"action\" data-tool=\"Edit\" data-file=\"/Users/demo/coding-agent-story/src/cmd/share.js\"><span class=\"tool-name\">Edit</span> <a class=\"file-link\" href=\"vscode://file/Users/demo/coding-agent-story/src/cmd/share.js\" title=\"open in VS Code\">/Users/demo/coding-agent-story/src/cmd/share.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/coding-agent-story/src/cmd/share.js\" title=\"open with default app\">↗</a><details class=\"diff\"><summary>diff</summary><pre><span class=\"ln del\"><span class=\"ln-gutter\">-</span>await writeFile(target, body);</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>const tmp = path.join(repoRoot, &#39;.coding-agent-story&#39;, `.tmp-${process.pid}`);</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>  await mkdir(tmp, { recursive: true });</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>  await writeFile(path.join(tmp, basename), body);</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>  await rename(tmp, target);</span></pre></details><div class=\"action-outcome\">Edited successfully</div></li><li class=\"action\" data-tool=\"Bash\" data-bashcat=\"test\"><span class=\"tool-name\">Bash</span> <code class=\"tool-cmd\">npm test -- share</code><div class=\"action-outcome\">12 passing\n0 failing</div></li><li class=\"action\" data-tool=\"Bash\" data-bashcat=\"node\"><span class=\"tool-name\">Bash</span> <code class=\"tool-cmd\">node test/manual/share-crash-sim.js</code><div class=\"action-outcome\">✓ no partial files left after SIGKILL</div></li></ul>\n    <ul class=\"actions-under\"><li class=\"outcome\">(skill applied)</li></ul>\n  </section><section class=\"decision-group by-claude\">\n    <div class=\"decision-text by-claude\">\n        <span class=\"decision-by\">🤖 claude</span>\n        Atomic rename verified — crash mid-share now leaves the repo clean. Going to commit.\n      </div>\n    \n    \n  </section>\n</section>","demo-checkout-flake":"<div class=\"session-branch\"><span class=\"branch-pill\">⎇ fix/checkout-flake</span> <span class=\"meta\">git branch active during this session</span></div>\n\n<div class=\"file-summary\">\n  <h4>Files touched (5)</h4>\n  <table><thead><tr><th>path</th><th style=\"text-align:right\">edits</th></tr></thead><tbody><tr class=\"\"><td class=\"path\"><a class=\"file-link\" href=\"vscode://file/Users/demo/shop-api/src/checkout/refund.js\" title=\"open in VS Code\">/Users/demo/shop-api/src/checkout/refund.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/shop-api/src/checkout/refund.js\" title=\"open with default app\">↗</a></td><td class=\"count\">2</td></tr><tr class=\"\"><td class=\"path\"><a class=\"file-link\" href=\"vscode://file/Users/demo/shop-api/src/checkout/cart.js\" title=\"open in VS Code\">/Users/demo/shop-api/src/checkout/cart.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/shop-api/src/checkout/cart.js\" title=\"open with default app\">↗</a></td><td class=\"count\">1</td></tr><tr class=\"\"><td class=\"path\"><a class=\"file-link\" href=\"vscode://file/Users/demo/shop-api/src/checkout/payment.js\" title=\"open in VS Code\">/Users/demo/shop-api/src/checkout/payment.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/shop-api/src/checkout/payment.js\" title=\"open with default app\">↗</a></td><td class=\"count\">1</td></tr><tr class=\"\"><td class=\"path\"><a class=\"file-link\" href=\"vscode://file/Users/demo/shop-api/src/checkout/order.js\" title=\"open in VS Code\">/Users/demo/shop-api/src/checkout/order.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/shop-api/src/checkout/order.js\" title=\"open with default app\">↗</a></td><td class=\"count\">1</td></tr><tr class=\"\"><td class=\"path\"><a class=\"file-link\" href=\"vscode://file/Users/demo/shop-api/test/checkout/race.test.js\" title=\"open in VS Code\">/Users/demo/shop-api/test/checkout/race.test.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/shop-api/test/checkout/race.test.js\" title=\"open with default app\">↗</a></td><td class=\"count\">1</td></tr></tbody></table>\n</div>\n<div class=\"session-toc\"><a href=\"#ch1\">1. I&#39;ll reproduce first by running the test 20x with --repeat.</a><a href=\"#ch2\">2. Write /Users/demo/shop-api/test/checkout/race.test.js</a><a href=\"#ch3\">3. Edit /Users/demo/shop-api/src/checkout/refund.js</a></div>\n\n<section class=\"chapter\" id=\"ch1\">\n  <h3>I&#39;ll reproduce first by running the test 20x with --repeat.</h3>\n  <div class=\"meta\">2026-05-13T18:00:30.000Z · 4 file(s) · 5 action(s)</div>\n  <div class=\"intervention simple\">wait — don&#39;t just patch that one Promise. find every spot in src/checkout/ that fires async work without awaiting. If one slipped through, others probably did too.</div>\n  <section class=\"decision-group by-claude\">\n    <div class=\"decision-text by-claude\">\n        <span class=\"decision-by\">🤖 claude</span>\n        I&#39;ll reproduce first by running the test 20x with --repeat. Because intermittent, we want a deterministic repro before guessing.\n      </div>\n    <ul class=\"actions-under\"><li class=\"action\" data-tool=\"Bash\" data-bashcat=\"test\"><span class=\"tool-name\">Bash</span> <code class=\"tool-cmd\">npm run test -- --grep &quot;checkout flow&quot; --repeat 20</code><div class=\"action-outcome error\">iter 1..13 passing\niter 14: AssertionError: expected order_id to be defined, got undefined\niter 15..20 passing</div></li></ul>\n    \n  </section><section class=\"decision-group by-claude\">\n    <div class=\"decision-text by-claude\">\n        <span class=\"decision-by\">🤖 claude</span>\n        Got a repro on iteration 14. Hypothesis: race between `cart.clear()` and `order.create()` because the test sometimes observes an empty cart before the order row exists.\n      </div>\n    \n    <ul class=\"actions-under\"><li class=\"outcome\">(file contents)</li></ul>\n  </section><section class=\"decision-group by-claude\">\n    <div class=\"decision-text by-claude\">\n        <span class=\"decision-by\">🤖 claude</span>\n        Found it — line 87 fires `analytics.trackClear()` without await. The Promise resolves *after* the test reads cart state. I&#39;ll await it.\n      </div>\n    \n    \n  </section><section class=\"decision-group by-claude\">\n    <div class=\"decision-text by-claude\">\n        <span class=\"decision-by\">🤖 claude</span>\n        Good catch — I&#39;ll spawn an Explore subagent to map every fire-and-forget async call in src/checkout/ before patching anything.\n      </div>\n    \n    <ul class=\"actions-under\"><li class=\"outcome\">Found 4 fire-and-forget calls:\n  src/checkout/cart.js:87   analytics.trackClear()\n  src/checkout/payment.js:142 notifier.paymentSettled()\n  src/checkout/order.js:55   audit.log({event:&quot;order_created&quot;})\n  src/checkout/refund.js:30  analytics.trackRefund()</li></ul>\n  </section><section class=\"decision-group by-claude\">\n    <div class=\"decision-text by-claude\">\n        <span class=\"decision-by\">🤖 claude</span>\n        Four spots. I&#39;ll await all four and add a regression test that asserts the cart is empty *only after* the order row exists.\n      </div>\n    <ul class=\"actions-under\"><li class=\"action\" data-tool=\"Edit\" data-file=\"/Users/demo/shop-api/src/checkout/cart.js\"><span class=\"tool-name\">Edit</span> <a class=\"file-link\" href=\"vscode://file/Users/demo/shop-api/src/checkout/cart.js\" title=\"open in VS Code\">/Users/demo/shop-api/src/checkout/cart.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/shop-api/src/checkout/cart.js\" title=\"open with default app\">↗</a><details class=\"diff\"><summary>diff</summary><pre><span class=\"ln del\"><span class=\"ln-gutter\">-</span>analytics.trackClear();</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>await analytics.trackClear();</span></pre></details><div class=\"action-outcome\">Edited successfully</div></li><li class=\"action\" data-tool=\"Edit\" data-file=\"/Users/demo/shop-api/src/checkout/payment.js\"><span class=\"tool-name\">Edit</span> <a class=\"file-link\" href=\"vscode://file/Users/demo/shop-api/src/checkout/payment.js\" title=\"open in VS Code\">/Users/demo/shop-api/src/checkout/payment.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/shop-api/src/checkout/payment.js\" title=\"open with default app\">↗</a><details class=\"diff\"><summary>diff</summary><pre><span class=\"ln del\"><span class=\"ln-gutter\">-</span>notifier.paymentSettled(order);</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>await notifier.paymentSettled(order);</span></pre></details><div class=\"action-outcome\">Edited successfully</div></li><li class=\"action\" data-tool=\"Edit\" data-file=\"/Users/demo/shop-api/src/checkout/order.js\"><span class=\"tool-name\">Edit</span> <a class=\"file-link\" href=\"vscode://file/Users/demo/shop-api/src/checkout/order.js\" title=\"open in VS Code\">/Users/demo/shop-api/src/checkout/order.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/shop-api/src/checkout/order.js\" title=\"open with default app\">↗</a><details class=\"diff\"><summary>diff</summary><pre><span class=\"ln del\"><span class=\"ln-gutter\">-</span>audit.log({event:&#39;order_created&#39;, id});</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>await audit.log({event:&#39;order_created&#39;, id});</span></pre></details><div class=\"action-outcome\">Edited successfully</div></li><li class=\"action\" data-tool=\"Edit\" data-file=\"/Users/demo/shop-api/src/checkout/refund.js\"><span class=\"tool-name\">Edit</span> <a class=\"file-link\" href=\"vscode://file/Users/demo/shop-api/src/checkout/refund.js\" title=\"open in VS Code\">/Users/demo/shop-api/src/checkout/refund.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/shop-api/src/checkout/refund.js\" title=\"open with default app\">↗</a><details class=\"diff\"><summary>diff</summary><pre><span class=\"ln del\"><span class=\"ln-gutter\">-</span>analytics.trackRefund(refundId);</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>await analytics.trackRefund(refundId);</span></pre></details><div class=\"action-outcome\">Edited successfully</div></li></ul>\n    \n  </section>\n</section>\n\n<section class=\"chapter\" id=\"ch2\">\n  <h3>Write /Users/demo/shop-api/test/checkout/race.test.js</h3>\n  <div class=\"meta\">2026-05-13T18:09:36.000Z · 1 file(s) · 2 action(s)</div>\n  \n  <section class=\"decision-group silent\">\n    <div class=\"decision-text silent\">\n        <span class=\"decision-by\">no stated intent</span>\n        (silent actions — the model edited without first stating why)\n      </div>\n    <ul class=\"actions-under\"><li class=\"action\" data-tool=\"Write\" data-file=\"/Users/demo/shop-api/test/checkout/race.test.js\"><span class=\"tool-name\">Write</span> <a class=\"file-link\" href=\"vscode://file/Users/demo/shop-api/test/checkout/race.test.js\" title=\"open in VS Code\">/Users/demo/shop-api/test/checkout/race.test.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/shop-api/test/checkout/race.test.js\" title=\"open with default app\">↗</a><details class=\"diff\"><summary>new file</summary><pre><span class=\"ln add\"><span class=\"ln-gutter\">+</span>import { test, expect } from &#39;vitest&#39;;</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>import { runCheckout } from &#39;../../src/checkout/index.js&#39;;</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span></span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>test(&#39;cart clear waits for order_id&#39;, async () =&gt; {</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>  const result = await runCheckout(fixtures.basic);</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>  expect(result.order_id).toBeDefined();</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>  expect(result.cart_size_after).toBe(0);</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>});</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span></span></pre></details><div class=\"action-outcome\">Wrote file (343 bytes)</div></li><li class=\"action\" data-tool=\"Bash\" data-bashcat=\"test\"><span class=\"tool-name\">Bash</span> <code class=\"tool-cmd\">npm run test -- --grep &quot;checkout flow&quot; --repeat 50</code></li></ul>\n    \n  </section>\n</section>\n\n<section class=\"chapter\" id=\"ch3\">\n  <h3>Edit /Users/demo/shop-api/src/checkout/refund.js</h3>\n  <div class=\"meta\">2026-05-13T18:15:30.000Z · 1 file(s) · 2 action(s)</div>\n  <div class=\"intervention simple\">good. but actually the refund.js one wasn&#39;t really a race — that was intentional fire-and-forget for the analytics callback because we don&#39;t want refund latency tied to analytics. revert that one.</div>\n  <section class=\"decision-group silent\">\n    <div class=\"decision-text silent\">\n        <span class=\"decision-by\">no stated intent</span>\n        (silent actions — the model edited without first stating why)\n      </div>\n    <ul class=\"actions-under\"><li class=\"action\" data-tool=\"Edit\" data-file=\"/Users/demo/shop-api/src/checkout/refund.js\"><span class=\"tool-name\">Edit</span> <a class=\"file-link\" href=\"vscode://file/Users/demo/shop-api/src/checkout/refund.js\" title=\"open in VS Code\">/Users/demo/shop-api/src/checkout/refund.js</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/shop-api/src/checkout/refund.js\" title=\"open with default app\">↗</a><details class=\"diff\"><summary>diff</summary><pre><span class=\"ln del\"><span class=\"ln-gutter\">-</span>await analytics.trackRefund(refundId);</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>analytics.trackRefund(refundId); // intentional fire-and-forget</span></pre></details><div class=\"action-outcome\">Edited successfully</div></li><li class=\"action\" data-tool=\"Bash\" data-bashcat=\"test\"><span class=\"tool-name\">Bash</span> <code class=\"tool-cmd\">npm test</code><div class=\"action-outcome\">218 passing\n0 failing</div></li></ul>\n    <ul class=\"actions-under\"><li class=\"outcome\">50/50 passing</li></ul>\n  </section>\n</section>","demo-stripe-migration":"<div class=\"session-branch\"><span class=\"branch-pill\">⎇ feat/stripe-pmi-column</span> <span class=\"meta\">git branch active during this session</span></div>\n\n<div class=\"file-summary\">\n  <h4>Files touched (1)</h4>\n  <table><thead><tr><th>path</th><th style=\"text-align:right\">edits</th></tr></thead><tbody><tr class=\"\"><td class=\"path\"><a class=\"file-link\" href=\"vscode://file/Users/demo/shop-api/migrations/0042_add_stripe_payment_method.sql\" title=\"open in VS Code\">/Users/demo/shop-api/migrations/0042_add_stripe_payment_method.sql</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/shop-api/migrations/0042_add_stripe_payment_method.sql\" title=\"open with default app\">↗</a></td><td class=\"count\">1</td></tr></tbody></table>\n</div>\n\n\n<section class=\"chapter\" id=\"ch1\">\n  <h3>Add a migration that adds `stripe_payment_method_id` (nulla…</h3>\n  <div class=\"meta\">2026-05-10T18:00:00.000Z · 1 file(s) · 2 action(s)</div>\n  \n  <section class=\"decision-group by-user\">\n    <div class=\"decision-text by-user\">\n        <span class=\"decision-by\">👤 you asked</span>\n        Add a migration that adds `stripe_payment_method_id` (nullable string, 64 chars) to the `orders` table. Backfill to NULL.\n      </div>\n    \n    \n  </section><section class=\"decision-group by-claude\">\n    <div class=\"decision-text by-claude\">\n        <span class=\"decision-by\">🤖 claude</span>\n        I&#39;ll create migration 0042_add_stripe_payment_method.sql with a NOT NULL false constraint. Going to keep it reversible because we touch a hot table.\n      </div>\n    <ul class=\"actions-under\"><li class=\"action\" data-tool=\"Write\" data-file=\"/Users/demo/shop-api/migrations/0042_add_stripe_payment_method.sql\"><span class=\"tool-name\">Write</span> <a class=\"file-link\" href=\"vscode://file/Users/demo/shop-api/migrations/0042_add_stripe_payment_method.sql\" title=\"open in VS Code\">/Users/demo/shop-api/migrations/0042_add_stripe_payment_method.sql</a> <a class=\"file-link-alt\" href=\"file:///Users/demo/shop-api/migrations/0042_add_stripe_payment_method.sql\" title=\"open with default app\">↗</a><details class=\"diff\"><summary>new file</summary><pre><span class=\"ln add\"><span class=\"ln-gutter\">+</span>-- up</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>ALTER TABLE orders</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>  ADD COLUMN stripe_payment_method_id VARCHAR(64) NULL;</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span></span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>-- down</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>ALTER TABLE orders</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span>  DROP COLUMN stripe_payment_method_id;</span><span class=\"ln add\"><span class=\"ln-gutter\">+</span></span></pre></details><div class=\"action-outcome\">Wrote file (185 bytes)</div></li><li class=\"action\" data-tool=\"Bash\" data-bashcat=\"other\"><span class=\"tool-name\">Bash</span> <code class=\"tool-cmd\">npm run migrate:dryrun -- --to 0042</code><div class=\"action-outcome\">Would apply 1 migration:\n  0042_add_stripe_payment_method.sql (locks: SHARE)</div></li></ul>\n    <ul class=\"actions-under\"><li class=\"outcome\">security-review: no findings. Column is nullable; stripe pm_xxx ids are non-PII per Stripe docs; no index added so no covert lookup vector.</li></ul>\n  </section>\n</section>"}</script>
+<script>
+(function () {
+  'use strict';
+
+  function parseEmbeddedData() {
+    var el = document.getElementById('coding-agent-story-data');
+    if (!el) return { sessions: [], projects: [], generated_at: '' };
+    try {
+      return JSON.parse(el.textContent);
+    } catch (e) {
+      return { sessions: [], projects: [], generated_at: '' };
+    }
+  }
+
+  function parseEmbeddedFragments() {
+    var el = document.getElementById('coding-agent-story-fragments');
+    if (!el) return {};
+    try {
+      return JSON.parse(el.textContent);
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function debounce(fn, ms) {
+    var t;
+    return function () {
+      var args = arguments, self = this;
+      clearTimeout(t);
+      t = setTimeout(function () { fn.apply(self, args); }, ms);
+    };
+  }
+
+  function fmtDuration(sec) {
+    if (!sec) return '—';
+    if (sec < 60) return sec + 's';
+    if (sec < 3600) return Math.round(sec / 60) + 'm';
+    var h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
+    return h + 'h ' + m + 'm';
+  }
+
+  function fmtTokens(n) {
+    n = +n || 0;
+    if (n === 0) return '—';
+    if (n < 1000) return n + '';
+    if (n < 1e6) return (n / 1000).toFixed(n < 10000 ? 1 : 0) + 'k';
+    return (n / 1e6).toFixed(1) + 'M';
+  }
+
+  function fmtMs(ms) {
+    ms = +ms || 0;
+    if (ms === 0) return '—';
+    if (ms < 1000) return ms + 'ms';
+    return (ms / 1000).toFixed(1) + 's';
+  }
+
+  function modelShort(model) {
+    if (!model) return '';
+    return model.replace(/^claude-/,'').replace(/-d+(.d+)?$/, '').replace(/-/g,' ');
+  }
+
+  function renderModelBadge(models) {
+    if (!models || !models.length) return '';
+    var primary = models[0];
+    var extra = models.length > 1 ? ' +' + (models.length - 1) : '';
+    return '<span class="model-badge" title="' + escapeHtml(models.join(', ')) + '">' + escapeHtml(modelShort(primary)) + extra + '</span>';
+  }
+
+  function fmtWhen(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    var now = Date.now();
+    var diff = (now - d.getTime()) / 1000;
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return Math.round(diff / 60) + ' min ago';
+    if (diff < 86400) return Math.round(diff / 3600) + ' h ago';
+    if (diff < 86400 * 7) return Math.round(diff / 86400) + ' d ago';
+    return d.toISOString().slice(0, 10);
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function withinDateRange(iso, range) {
+    if (!iso || range === 'all') return true;
+    var t = Date.parse(iso);
+    if (isNaN(t)) return true;
+    var hrs = { '24h': 24, '7d': 24*7, '30d': 24*30 }[range];
+    if (!hrs) return true;
+    return (Date.now() - t) <= hrs * 3600 * 1000;
+  }
+
+  function matchesSearch(s, q) {
+    if (!q) return true;
+    q = q.toLowerCase();
+    var hay = [
+      s.summary || '',
+      s.first_user_message || '',
+      s.project_name || '',
+      s.git_branch || '',
+      (s.files_touched || []).join(' '),
+    ].join(' ').toLowerCase();
+    return hay.indexOf(q) !== -1;
+  }
+
+  function getSortKey(mode) {
+    return {
+      recent: function (a, b) { return (b.started_at || '').localeCompare(a.started_at || ''); },
+      longest: function (a, b) { return (b.duration_seconds || 0) - (a.duration_seconds || 0); },
+      interventions: function (a, b) { return (b.intervention_count || 0) - (a.intervention_count || 0); },
+      files: function (a, b) { return (b.files_touched || []).length - (a.files_touched || []).length; },
+      tokens: function (a, b) { return ((b.tokens && b.tokens.billable) || 0) - ((a.tokens && a.tokens.billable) || 0); },
+      failures: function (a, b) { return (b.tool_failures || 0) - (a.tool_failures || 0); },
+    }[mode] || function () { return 0; };
+  }
+
+  var DATA = parseEmbeddedData();
+  var FRAGMENTS = parseEmbeddedFragments();
+  var STATE = {
+    search: '',
+    range: 'all',
+    sort: 'recent',
+    project: 'all',
+    hasInt: false,
+    selected: 0,
+  };
+
+  function applyFilters() {
+    var rows = DATA.sessions
+      .filter(function (s) {
+        if (STATE.project !== 'all' && s.project_path !== STATE.project) return false;
+        if (STATE.hasInt && (s.intervention_count || 0) === 0) return false;
+        if (!withinDateRange(s.started_at, STATE.range)) return false;
+        if (!matchesSearch(s, STATE.search)) return false;
+        return true;
+      })
+      .slice();
+    rows.sort(getSortKey(STATE.sort));
+    return rows;
+  }
+
+  function renderSpark(buckets) {
+    if (!buckets || !buckets.length) return '';
+    var max = 1;
+    for (var i = 0; i < buckets.length; i++) { if (buckets[i] > max) max = buckets[i]; }
+    var w = 80, h = 18, bw = w / buckets.length;
+    var bars = '';
+    for (var j = 0; j < buckets.length; j++) {
+      var bh = Math.max(1, Math.round((buckets[j] / max) * h));
+      var x = (j * bw).toFixed(2);
+      var y = (h - bh).toFixed(2);
+      bars += '<rect x="' + x + '" y="' + y + '" width="' + (bw - 0.4).toFixed(2) + '" height="' + bh + '" />';
+    }
+    return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">' + bars + '</svg>';
+  }
+
+  function renderTags(tags) {
+    if (!tags || !tags.length) return '';
+    var bits = '';
+    for (var i = 0; i < tags.length && i < 4; i++) {
+      bits += '<span class="tag-chip">' + escapeHtml(tags[i]) + '</span>';
+    }
+    return '<span class="tag-row">' + bits + '</span>';
+  }
+
+  function renderTools(toolCalls, limit) {
+    // Filter out mcp__* — they render in their own row.
+    if (!toolCalls) return '';
+    var core = {};
+    for (var k in toolCalls) {
+      if (k.indexOf('mcp__') === 0) continue;
+      core[k] = toolCalls[k];
+    }
+    return renderCountMap(core, 'tool-chip', limit || 3, 'tool');
+  }
+
+  function renderMcp(map, limit) { return renderCountMap(map, 'mcp-chip', limit || 3, 'mcp'); }
+  function renderBashCats(map, limit) { return renderCountMap(map, 'bash-chip', limit || 4, 'bashcat'); }
+  function renderSlash(map, limit) { return renderCountMap(map, 'slash-chip', limit || 4); }
+  function renderSkills(map, limit) { return renderCountMap(map, 'skill-chip', limit || 3, 'skill'); }
+  function renderSubagents(map, limit) { return renderCountMap(map, 'agent-chip', limit || 3, 'agent'); }
+
+  function renderCountMap(map, cls, limit, jumpAttr) {
+    if (!map) return '';
+    var entries = Object.keys(map)
+      .map(function (k) { return [k, map[k] || 0]; })
+      .filter(function (e) { return e[1] > 0; })
+      .sort(function (a, b) { return b[1] - a[1]; });
+    if (!entries.length) return '';
+    var top = entries.slice(0, limit);
+    var totalRest = 0;
+    for (var i = limit; i < entries.length; i++) totalRest += entries[i][1];
+    var bits = '';
+    for (var i = 0; i < top.length; i++) {
+      var ja = jumpAttr ? ' data-jump-' + jumpAttr + '="' + escapeHtml(top[i][0]) + '"' : '';
+      bits += '<span class="' + cls + '"' + ja + ' title="' + escapeHtml(top[i][0]) + ': ' + top[i][1] +
+              (entries.length > limit ? '  ·  also ' + (entries.length - limit) + ' others (' + totalRest + ')' : '') +
+              '">' +
+              escapeHtml(top[i][0]) + ' <b>' + top[i][1] + '</b></span>';
+    }
+    return '<span class="chip-row">' + bits + '</span>';
+  }
+
+  function renderProjectCell(s) {
+    var name = escapeHtml(s.project_name);
+    var tip = s.project_description ? ' title="' + escapeHtml(s.project_description) + '"' : '';
+    return '<span class="project"' + tip + '>' + name + '</span>';
+  }
+
+  function renderTokens(t) {
+    if (!t) return '<span class="tokens">—</span>';
+    var tip = 'in: ' + (t.input||0).toLocaleString() +
+      ' · out: ' + (t.output||0).toLocaleString() +
+      ' · cache_read: ' + (t.cache_read||0).toLocaleString() +
+      ' · cache_create: ' + (t.cache_creation||0).toLocaleString() +
+      ' · billable: ' + (t.billable||0).toLocaleString();
+    return '<span class="tokens" title="' + escapeHtml(tip) + '">' + escapeHtml(fmtTokens(t.billable)) + '</span>';
+  }
+
+  function renderRow(s, idx) {
+    var when = fmtWhen(s.started_at);
+    var dur = fmtDuration(s.duration_seconds);
+    var files = (s.files_touched || []).length;
+    var branch = s.git_branch || '—';
+    var badges = '';
+    if (s.shared) {
+      badges += '<span class="badge badge-shared" title="committed to this repo via coding-agent-story share">shared</span>';
+    }
+    if ((s.intervention_count || 0) > 0) {
+      badges += '<span class="badge badge-int">' + s.intervention_count + ' int</span>';
+    }
+    if ((s.tool_failures || 0) > 0) {
+      badges += '<span class="badge badge-fail" title="' + s.tool_failures + ' tool failures">' + s.tool_failures + ' ✗</span>';
+    }
+    if ((s.sidechain_messages || 0) > 0) {
+      badges += '<span class="badge badge-side" title="messages from spawned subagents">⤳ ' + s.sidechain_messages + '</span>';
+    }
+    if ((s.plan_turn_pct || 0) > 0) {
+      badges += '<span class="badge badge-plan" title="user turns in plan mode">plan ' + Math.round((s.plan_turn_pct||0)*100) + '%</span>';
+    }
+    if ((s.max_tokens_count || 0) > 0) {
+      badges += '<span class="badge badge-fail" title="turns cut off at max_tokens">max_tok ' + s.max_tokens_count + '</span>';
+    }
+    if ((s.refusal_count || 0) > 0) {
+      badges += '<span class="badge badge-fail" title="refusals from the model">refuse ' + s.refusal_count + '</span>';
+    }
+    var t = s.tokens || {};
+    var cacheDenom = (t.cache_read || 0) + (t.cache_creation || 0);
+    if (cacheDenom > 0) {
+      var hit = Math.round(((t.cache_read || 0) / cacheDenom) * 100);
+      var cls = hit >= 80 ? 'badge-ok' : hit >= 50 ? '' : 'badge-fail';
+      badges += '<span class="badge ' + cls + '" title="cache_read ÷ (cache_read + cache_create)">cache ' + hit + '%</span>';
+    }
+    var intText = (s.first_intervention || '').trim();
+    var intLine = intText ? '<span class="row-intervention" title="' + escapeHtml(intText) + '">📌 ' + escapeHtml(intText) + '</span>' : '';
+    return ''
+      + '<details class="session-row" data-id="' + escapeHtml(s.id) + '" data-idx="' + idx + '">'
+      +   '<summary>'
+      +     '<span class="when" title="' + escapeHtml(s.started_at || '') + '">' + escapeHtml(when) + '</span>'
+      +     renderProjectCell(s)
+      +     '<span class="branch" title="' + escapeHtml(branch) + '">' + escapeHtml(branch) + '</span>'
+      +     '<span class="duration">' + escapeHtml(dur) + '</span>'
+      +     renderTokens(s.tokens)
+      +     '<span title="messages over time">' + renderSpark(s.activity_buckets) + '</span>'
+      +     '<span class="summary">'
+      +       '<span class="row-title">' + escapeHtml(s.summary || s.first_user_message || '(no summary)') + '</span>'
+      +       intLine
+      +       '<span class="row-meta">'
+      +         renderModelBadge(s.models)
+      +         renderTools(s.tool_calls, 3)
+      +         renderTags(s.project_tags)
+      +       '</span>'
+      +     '</span>'
+      +     '<span class="badges-cell">' + badges + '</span>'
+      +   '</summary>'
+      +   '<div class="session-detail" data-loaded="0"></div>'
+      + '</details>';
+  }
+
+  function render() {
+    var rows = applyFilters();
+    var statsEl = document.getElementById('coding-agent-story-stats');
+    if (statsEl) {
+      var totalSec = rows.reduce(function (a, s) { return a + (s.duration_seconds || 0); }, 0);
+      var totalTok = rows.reduce(function (a, s) { return a + ((s.tokens && s.tokens.billable) || 0); }, 0);
+      var totalFail = rows.reduce(function (a, s) { return a + (s.tool_failures || 0); }, 0);
+      statsEl.textContent = rows.length + ' session' + (rows.length === 1 ? '' : 's')
+        + ' · ' + fmtDuration(totalSec) + ' total'
+        + ' · ' + fmtTokens(totalTok) + ' tokens'
+        + (totalFail > 0 ? ' · ' + totalFail + ' ✗' : '')
+        + ' · last updated ' + fmtWhen(DATA.generated_at);
+    }
+    var list = document.getElementById('coding-agent-story-list');
+    if (rows.length === 0) {
+      list.innerHTML = '<div class="empty">No sessions match these filters.</div>';
+      return;
+    }
+    list.innerHTML = rows.map(renderRow).join('');
+    STATE.selected = Math.min(STATE.selected, rows.length - 1);
+    setSelection(STATE.selected);
+  }
+
+  function setSelection(idx) {
+    var rows = Array.from(document.querySelectorAll('#coding-agent-story-list .session-row'));
+    rows.forEach(function (r, i) { r.classList.toggle('selected', i === idx); });
+    if (rows[idx]) {
+      rows[idx].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+    STATE.selected = idx;
+  }
+
+  function hookListeners() {
+    var search = document.getElementById('coding-agent-story-search');
+    search.addEventListener('input', debounce(function () {
+      STATE.search = search.value.trim();
+      render();
+    }, 80));
+
+    document.getElementById('coding-agent-story-range').addEventListener('change', function (e) {
+      STATE.range = e.target.value; render();
+    });
+    document.getElementById('coding-agent-story-sort').addEventListener('change', function (e) {
+      STATE.sort = e.target.value; render();
+    });
+    document.getElementById('coding-agent-story-project').addEventListener('change', function (e) {
+      STATE.project = e.target.value; render();
+    });
+    document.getElementById('coding-agent-story-hasint').addEventListener('change', function (e) {
+      STATE.hasInt = e.target.checked; render();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) {
+        if (e.key === 'Escape') { e.target.blur(); }
+        return;
+      }
+      if (e.key === '/') { e.preventDefault(); search.focus(); search.select(); return; }
+      if (e.key === 'j' || e.key === 'ArrowDown') { e.preventDefault(); setSelection(STATE.selected + 1); }
+      if (e.key === 'k' || e.key === 'ArrowUp') { e.preventDefault(); setSelection(Math.max(0, STATE.selected - 1)); }
+      if (e.key === 'Enter') {
+        var rows = document.querySelectorAll('#coding-agent-story-list .session-row');
+        var row = rows[STATE.selected];
+        if (row) {
+          row.open = !row.open;
+          if (row.open) loadDetail(row);
+        }
+      }
+    });
+
+    document.getElementById('coding-agent-story-list').addEventListener('toggle', function (e) {
+      if (e.target && e.target.matches('.session-row')) {
+        if (e.target.open) loadDetail(e.target);
+      }
+    }, true);
+
+    // Delegated click → jump for any chip with data-jump-* attribute.
+    document.getElementById('coding-agent-story-list').addEventListener('click', function (e) {
+      var chip = e.target.closest('[data-jump-tool], [data-jump-mcp], [data-jump-bashcat], [data-jump-skill], [data-jump-agent]');
+      if (chip) {
+        e.preventDefault();
+        jumpFromChip(chip);
+      }
+      var anchor = e.target.closest('.session-toc a[href^="#"]');
+      if (anchor) {
+        e.preventDefault();
+        var pane = anchor.closest('.session-detail');
+        var id = anchor.getAttribute('href').slice(1);
+        var t = pane && pane.querySelector('#' + cssEscape(id));
+        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
+
+  function loadDetail(row) {
+    var pane = row.querySelector('.session-detail');
+    if (!pane || pane.dataset.loaded === '1') return;
+    var id = row.dataset.id;
+    var session = null;
+    for (var i = 0; i < DATA.sessions.length; i++) {
+      if (DATA.sessions[i].id === id) { session = DATA.sessions[i]; break; }
+    }
+    var html = FRAGMENTS[id];
+    if (html) {
+      pane.innerHTML = renderTldrPanel(session) + html;
+      pane.dataset.loaded = '1';
+      return;
+    }
+    if (window.__coding_agent_story_fetch__) {
+      pane.innerHTML = '<div class="meta">Loading…</div>';
+      window.__coding_agent_story_fetch__(id).then(function (h) {
+        pane.innerHTML = renderTldrPanel(session) + (h || '<div class="empty">No detail available.</div>');
+        pane.dataset.loaded = '1';
+      }).catch(function (err) {
+        pane.innerHTML = '<div class="empty">Failed to load: ' + escapeHtml(err.message) + '</div>';
+      });
+    } else {
+      pane.innerHTML = renderTldrPanel(session) + '<div class="empty">No detail available for this session.</div>';
+      pane.dataset.loaded = '1';
+    }
+  }
+
+  function renderTldrPanel(s) {
+    if (!s) return '';
+    var ask = s.first_user_message || '(no opening prompt captured)';
+    var stats = [
+      s.duration_seconds ? fmtDuration(s.duration_seconds) : null,
+      s.message_count ? s.message_count + ' messages' : null,
+      (s.tool_failures || 0) > 0 ? (s.tool_failures + ' failures') : null,
+      (s.intervention_count || 0) > 0 ? (s.intervention_count + ' interventions') : null,
+      (s.tokens && s.tokens.billable) ? (fmtTokens(s.tokens.billable) + ' tokens') : null,
+    ].filter(Boolean);
+
+    return ''
+      + '<div class="tldr-panel">'
+      +   '<div class="tldr-header">'
+      +     '<h4>Session at a glance</h4>'
+      +     '<span class="tldr-stats">' + stats.map(escapeHtml).join(' · ') + '</span>'
+      +   '</div>'
+      +   '<div class="tldr-ask"><span class="tldr-label">You asked</span> ' + escapeHtml(ask) + '</div>'
+      +   '<div class="tldr-summary"><span class="tldr-label">Claude direction</span> ' + escapeHtml(s.summary || '—') + '</div>'
+      +   '<div class="tldr-chips">'
+      +     renderModelBadge(s.models)
+      +     renderTools(s.tool_calls, 8)
+      +     renderBashCats(s.bash_categories, 8)
+      +     renderMcp(s.mcp_tools, 6)
+      +     renderSubagents(s.subagents_used, 6)
+      +     renderSkills(s.skills_used, 6)
+      +     renderSlash(s.slash_commands, 6)
+      +   '</div>'
+      +   '<div class="tldr-hint meta">Click any chip to jump to its first occurrence in this session.</div>'
+      + '</div>';
+  }
+
+  function jumpFromChip(chip) {
+    var pane = chip.closest('.session-detail');
+    if (!pane) return;
+    var rules = ['tool', 'mcp', 'bashcat', 'skill', 'agent'];
+    for (var i = 0; i < rules.length; i++) {
+      var attr = 'jump' + rules[i].charAt(0).toUpperCase() + rules[i].slice(1);
+      var val = chip.dataset[attr];
+      if (!val) continue;
+      var sel = '[data-' + rules[i] + '="' + cssEscape(val) + '"]';
+      var target = pane.querySelector(sel);
+      if (!target) {
+        // Special case for tool=Bash → category — fallback to first action with the tool name.
+        if (rules[i] === 'bashcat' || rules[i] === 'mcp') {
+          target = pane.querySelector('[data-tool="Bash"]');
+        }
+      }
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.classList.add('jump-flash');
+        setTimeout(function (el) { return function () { el.classList.remove('jump-flash'); }; }(target), 1500);
+      }
+      return;
+    }
+  }
+
+  function cssEscape(s) {
+    if (window.CSS && CSS.escape) return CSS.escape(s);
+    return String(s).replace(/[^a-zA-Z0-9_-]/g, function (c) {
+      return '\\' + c.charCodeAt(0).toString(16) + ' ';
+    });
+  }
+
+  function setupServeRefresh() {
+    if (!window.__coding_agent_story_poll__) return;
+    setInterval(function () {
+      fetch('/api/index', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (data) {
+        if (data && data.generated_at && data.generated_at !== DATA.generated_at) {
+          DATA = data;
+          render();
+        }
+      }).catch(function () {});
+    }, 30000);
+
+    window.__coding_agent_story_fetch__ = function (id) {
+      return fetch('/api/session/' + encodeURIComponent(id), { cache: 'no-store' })
+        .then(function (r) { return r.text(); });
+    };
+  }
+
+  function populateProjects() {
+    var sel = document.getElementById('coding-agent-story-project');
+    var seen = new Set();
+    DATA.projects.forEach(function (p) {
+      if (seen.has(p.path)) return;
+      seen.add(p.path);
+      var opt = document.createElement('option');
+      opt.value = p.path;
+      opt.textContent = p.name + ' (' + p.session_count + ')';
+      sel.appendChild(opt);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    populateProjects();
+    hookListeners();
+    setupServeRefresh();
+    render();
+  });
+})();
+</script>
+</body>
+</html>
