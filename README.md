@@ -17,13 +17,13 @@ All processing happens on your machine. There are **no network calls** and
 ## Install
 
 ```sh
-npm install -g castory
+npm install -g @achreftlili/castory
 ```
 
 Or run with no install:
 
 ```sh
-npx castory@latest dashboard
+npx @achreftlili/castory@latest dashboard
 ```
 
 Requires Node ≥ 20.
@@ -123,7 +123,7 @@ preserved verbatim** — those are the highest-signal moments in a session.
 ## Uninstall
 
 ```sh
-npm uninstall -g castory
+npm uninstall -g @achreftlili/castory
 rm -rf ~/.cache/castory
 ```
 
